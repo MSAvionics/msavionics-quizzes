@@ -330,4 +330,305 @@
   @media (max-width:480px){
     .card{ padding:24px 18px; }
     .qtext{ font-size:18px; }
-    .readout-score{
+    .readout-score{ font-size:42px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .zone{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="rig">
+  <div class="header">
+    <span class="tag">SPDB Knowledge Check</span>
+    <span class="brand">MSAvionics</span>
+  </div>
+
+  <div class="zonebar" id="zonebar"></div>
+
+  <div class="card" id="quizCard">
+    <div id="quizBody"></div>
+  </div>
+
+  <div class="card readout" id="readoutCard">
+    <div id="readoutBody"></div>
+  </div>
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    q: "What is the primary function of an A350 SPDB?",
+    opts: [
+      "Manage and distribute electrical power within a zone using SSPCs",
+      "Generate electrical power.",
+      "Control hydraulic pumps",
+      "Store electrical power"
+    ],
+    correct: 0,
+    explain: "An SPDB is far more than a distribution box. It acts as a zonal power manager, using SSPCs to distribute, monitor, and protect electrical loads within its assigned aircraft zone.",
+    insight: "Understanding the SPDB as a system controller — not just a power box — is the foundation for effective troubleshooting."
+  },
+  {
+    q: "Why are SPDBs not interchangeable between aircraft positions?",
+    opts: [
+      "Different connector sizes",
+      "Position-specific configuration data is loaded into each SPDB",
+      "Different power sources",
+      "Different paint markings"
+    ],
+    correct: 1,
+    explain: "Each SPDB contains aircraft-position-specific configuration data. Although two SPDBs may appear physically identical, they are configured for different aircraft zones and functions.",
+    insight: "Always verify part numbers and configuration applicability before replacement."
+  },
+  {
+    q: "Which SPDB numbers do not exist on the A350?",
+    opts: [
+      "SPDB 5 and 6",
+      "SPDB 7 and 8",
+      "SPDB 9 and 10",
+      "SPDB 13 and 14"
+    ],
+    correct: 2,
+    explain: "Airbus did not forget them. SPDBs 1–8 are assigned to cabin zones, while SPDBs 11–14 support cargo zones. SPDB-9 and SPDB-10 are intentionally absent from the architecture.",
+    insight: "Knowing aircraft architecture often helps fault isolation more than memorizing component locations."
+  },
+  {
+    q: "What technology replaces many traditional circuit breakers inside an SPDB?",
+    opts: [
+      "Contactors",
+      "Transformers",
+      "Relays",
+      "SSPCs"
+    ],
+    correct: 3,
+    explain: "Solid State Power Controllers (SSPCs) provide electronic circuit protection and switching functions without relying on traditional mechanical circuit breakers. Benefits include faster protection, built-in monitoring, remote control capability, and improved fault reporting.",
+    insight: "Modern aircraft increasingly replace mechanical protection devices with intelligent electronic systems."
+  },
+  {
+    q: "What is the primary purpose of the LPMF — Local Power Management Function?",
+    opts: [
+      "Battery charging",
+      "Feeder overload protection",
+      "Cabin lighting control",
+      "Hydraulic monitoring"
+    ],
+    correct: 1,
+    explain: "The Load Power Management Function (LPMF) continuously monitors feeder loading and automatically sheds selected loads when necessary to prevent feeder overload. Think of it as an automatic traffic controller for electrical power distribution.",
+    insight: "The goal is not only to protect circuits, but also to protect the feeder supplying the entire zone."
+  },
+  {
+    q: "Which Airbus tool allows engineers to control circuits on a cold-and-dark aircraft?",
+    opts: [
+      "PDMI",
+      "ECAM",
+      "OIT",
+      "CFDS"
+    ],
+    correct: 0,
+    explain: "The Portable Data Maintenance Interface (PDMI) allows maintenance personnel to monitor and control electrical circuits while the aircraft remains cold and dark using battery power.",
+    insight: "The PDMI is one of the most powerful maintenance tools available for SPDB troubleshooting."
+  },
+  {
+    q: "An SPDB failure is generally considered:",
+    opts: [
+      "A flight safety emergency",
+      "A hydraulic failure",
+      "An engine failure",
+      "Usually a commercial or operational issue rather than a direct safety issue"
+    ],
+    correct: 3,
+    explain: "Most SPDB failures affect specific aircraft services rather than primary flight safety functions. Depending on the failure and affected systems, dispatch may remain possible under MEL provisions.",
+    insight: "Always evaluate operational impact separately from safety impact."
+  },
+  {
+    q: "Without SPDBs, the aircraft would likely have:",
+    opts: [
+      "Less wiring",
+      "More automation",
+      "More wiring and increased weight",
+      "Faster fault isolation"
+    ],
+    correct: 2,
+    explain: "Zonal distribution significantly reduces wiring runs throughout the aircraft. Without SPDBs, power would need to be distributed from centralized locations, increasing wiring complexity, weight, and maintenance burden.",
+    insight: "Many modern Airbus architectures exist primarily to reduce wiring weight and improve maintainability."
+  },
+  {
+    q: "You suspect an SPDB-related fault. Which Airbus documentation should normally be consulted for troubleshooting?",
+    opts: [
+      "TSM and AFI",
+      "IPC",
+      "MEL",
+      "FIM"
+    ],
+    correct: 0,
+    explain: "For A350 troubleshooting, the Trouble Shooting Manual (TSM) and Aircraft Fault Isolation (AFI) are the correct references — not the FIM, which is a Boeing-context document.",
+    insight: "Cross-platform habits are one of the most common sources of reference errors during a Boeing-to-Airbus transition."
+  },
+  {
+    q: "Why did Airbus move toward zonal power distribution architectures such as the SPDB concept?",
+    opts: [
+      "To reduce hydraulic usage",
+      "To increase engine thrust",
+      "To eliminate batteries",
+      "To reduce wiring complexity and improve power management efficiency"
+    ],
+    correct: 3,
+    explain: "As aircraft systems became more complex, centralized electrical distribution became increasingly difficult to manage. Zonal architectures reduce wiring, improve protection speed, simplify maintenance, and enable intelligent power management. This philosophy became even more important following lessons learned from large-aircraft wiring complexity.",
+    insight: "The SPDB is not simply a component — it is part of Airbus's broader strategy for smarter aircraft architecture."
+  }
+];
+
+const TOTAL = QUESTIONS.length;
+let current = 0;
+let score = 0;
+let answered = false;
+const userAnswers = new Array(TOTAL).fill(null);
+
+const zonebar = document.getElementById('zonebar');
+const quizBody = document.getElementById('quizBody');
+const quizCard = document.getElementById('quizCard');
+const readoutCard = document.getElementById('readoutCard');
+const readoutBody = document.getElementById('readoutBody');
+
+function buildZonebar(){
+  zonebar.innerHTML = '';
+  for(let i=0;i<TOTAL;i++){
+    const z = document.createElement('div');
+    z.className = 'zone';
+    if(i < current) z.classList.add('filled');
+    else if(i === current) z.classList.add('current');
+    zonebar.appendChild(z);
+  }
+}
+
+function renderQuestion(){
+  answered = false;
+  buildZonebar();
+  const item = QUESTIONS[current];
+  const letters = ['A','B','C','D'];
+
+  let optsHTML = '';
+  item.opts.forEach((opt, idx) => {
+    optsHTML += `<button class="opt" data-idx="${idx}"><span class="marker">${letters[idx]}</span><span>${opt}</span></button>`;
+  });
+
+  quizBody.innerHTML = `
+    <div class="qnum">QUESTION ${current+1} / ${TOTAL}</div>
+    <div class="qtext">${item.q}</div>
+    <div class="options" id="optionsWrap">${optsHTML}</div>
+    <div class="explain" id="explainBox"></div>
+    <div class="nextwrap" id="nextWrap"><button class="btn" id="nextBtn">${current === TOTAL-1 ? 'See Results' : 'Next'}</button></div>
+  `;
+
+  document.querySelectorAll('.opt').forEach(btn => {
+    btn.addEventListener('click', () => selectOption(parseInt(btn.dataset.idx)));
+  });
+
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    current++;
+    if(current < TOTAL){
+      renderQuestion();
+    } else {
+      showResults();
+    }
+  });
+}
+
+function selectOption(idx){
+  if(answered) return;
+  answered = true;
+  userAnswers[current] = idx;
+
+  const item = QUESTIONS[current];
+  const isCorrect = idx === item.correct;
+  if(isCorrect) score++;
+
+  document.querySelectorAll('.opt').forEach((btn, i) => {
+    btn.disabled = true;
+    if(i === item.correct) btn.classList.add('correct');
+    else if(i === idx) btn.classList.add('incorrect');
+  });
+
+  const explainBox = document.getElementById('explainBox');
+  explainBox.innerHTML = `<strong>${isCorrect ? 'Correct.' : 'Not quite.'}</strong> ${item.explain}<span class="insight">💡 MSAvionics Insight: ${item.insight}</span>`;
+  explainBox.classList.add('show');
+
+  document.getElementById('nextWrap').classList.add('show');
+}
+
+function getVerdict(s){
+  if(s === TOTAL){
+    return "Full marks. You'd answer \u201Cwhy does the SPDB exist\u201D at 2 AM without blinking.";
+  } else if(s >= 8){
+    return "Line-replaceable, not line-limited \uD83D\uDD27 — a sharp grasp of the architecture, with a couple of gaps worth closing.";
+  } else if(s >= 5){
+    return "You've got the shape of it, but the SPDB still has a few corners worth re-reading — particularly around SSPC behavior and documentation references.";
+  } else {
+    return "Time to revisit the SPDB series from the top — especially the EPDC/EDMU relationship and cold-dark activation sequence.";
+  }
+}
+
+function showResults(){
+  quizCard.style.display = 'none';
+  readoutCard.classList.add('show');
+
+  let segHTML = '';
+  for(let i=0;i<TOTAL;i++){
+    const hit = userAnswers[i] === QUESTIONS[i].correct;
+    segHTML += `<div class="seg ${hit ? 'hit' : 'miss'}"></div>`;
+  }
+
+  const missedIdx = [];
+  userAnswers.forEach((ans, i) => {
+    if(ans !== QUESTIONS[i].correct) missedIdx.push(i);
+  });
+
+  let missedHTML = '';
+  if(missedIdx.length > 0){
+    missedHTML = `<div class="missed-block">
+      <div class="mb-title">Revisit these</div>
+      <ul>${missedIdx.map(i => `<li>${QUESTIONS[i].q}</li>`).join('')}</ul>
+    </div>`;
+  }
+
+  readoutBody.innerHTML = `
+    <div class="readout-head">SPDB STATUS READOUT</div>
+    <div class="readout-score">${score}<span> / ${TOTAL}</span></div>
+    <div class="readout-bar">${segHTML}</div>
+    <div class="verdict-label">Assessment</div>
+    <div class="verdict">${getVerdict(score)}</div>
+    ${missedHTML}
+    <div class="cta">
+      <div class="cta-tag">Keep it on the shelf</div>
+      <p>Want the SPDB architecture as a quick-reference card you can pull up mid-shift? Zone lookup, SSPC/LPMF logic, and the PDMI cold-dark activation sequence — get the Portrait + Landscape bundle for $9.99, or grab a single card for $5.99.</p>
+      <div class="cta-row">
+        <button class="btn" onclick="window.open('https://ko-fi.com/s/a7d4d22591', '_blank')">Get the Bundle — $9.99</button>
+      </div>
+      <div class="cta-row" style="margin-top:10px;">
+        <button class="btn secondary" onclick="window.open('https://ko-fi.com/msavionics', '_blank')">Get a Single Card — $5.99</button>
+        <button class="btn secondary" onclick="window.open('https://www.linkedin.com/posts/msavionics_a350-spdb-moreelectricaircraft-activity-7453180956200570880-NaFF', '_blank')">Read the Full Series</button>
+      </div>
+    </div>
+    <div class="restart"><button id="restartBtn">Retake the check</button></div>
+  `;
+
+  document.getElementById('restartBtn').addEventListener('click', restart);
+}
+
+function restart(){
+  current = 0;
+  score = 0;
+  userAnswers.fill(null);
+  readoutCard.classList.remove('show');
+  quizCard.style.display = '';
+  renderQuestion();
+}
+
+renderQuestion();
+</script>
+
+</body>
+</html>
