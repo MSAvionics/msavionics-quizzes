@@ -327,10 +327,91 @@
   }
   .restart button:hover{ color:var(--text); }
 
+  /* Intro screen */
+  .intro{ display:none; }
+  .intro.show{ display:block; }
+
+  .intro-eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--amber);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+
+  .intro-title{
+    font-size:24px;
+    font-weight:700;
+    line-height:1.35;
+    color:var(--text);
+    margin-bottom:16px;
+  }
+
+  .intro p{
+    font-size:15px;
+    line-height:1.65;
+    color:var(--text-dim);
+    margin:0 0 14px;
+  }
+
+  .intro-meta{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+    margin:18px 0 22px;
+    padding:14px 16px;
+    background:var(--bg);
+    border:1px solid var(--panel-edge);
+    border-radius:5px;
+  }
+  .intro-meta .im-item{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--text-dim);
+    letter-spacing:0.03em;
+  }
+  .intro-meta .im-item strong{
+    display:block;
+    color:var(--amber);
+    font-size:16px;
+    font-family:var(--sans);
+    font-weight:700;
+    margin-bottom:2px;
+  }
+
+  .intro-recap{
+    border-top:1px solid var(--panel-edge);
+    padding-top:20px;
+    margin-top:6px;
+  }
+  .intro-recap .ir-tag{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--text-dim);
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+
+  .intro-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:14px;
+  }
+  .intro-row .btn.secondary{
+    background:transparent;
+    color:var(--text);
+    border:1px solid var(--panel-edge);
+  }
+  .intro-row .btn.secondary:hover{ border-color:var(--amber-dim); }
+
   @media (max-width:480px){
     .card{ padding:24px 18px; }
     .qtext{ font-size:18px; }
     .readout-score{ font-size:42px; }
+    .intro-title{ font-size:20px; }
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -346,9 +427,34 @@
     <span class="brand">MSAvionics</span>
   </div>
 
+  <div class="card intro show" id="introCard">
+    <div class="intro-eyebrow">Before You Start</div>
+    <div class="intro-title">Lock in the SPDB series — 10 questions, straight from the 1–16 series.</div>
+    <p>This check covers the full arc: SPDB architecture and zonal power management, SSPCs (Solid State Power Controllers), the LPMF (Load Power Management Function), and the PDMI cold-dark activation sequence. It's not here to catch you out — it's here to help seal the concepts in for good, so they're muscle memory on shift, not just something you skimmed once.</p>
+
+    <div class="intro-meta">
+      <div class="im-item"><strong>10</strong>Questions</div>
+      <div class="im-item"><strong>~5 min</strong>Time</div>
+      <div class="im-item"><strong>Instant</strong>Explanations</div>
+    </div>
+
+    <div class="intro-recap">
+      <div class="ir-tag">Want a refresher first?</div>
+      <p style="margin-bottom:0;">The Post 16 recap (16a–16e) walks back through the whole series in Q&amp;A form. Skim it first if you want a warm-up, or head straight into the check below.</p>
+      <div class="intro-row">
+        <button class="btn secondary" onclick="window.open('https://www.linkedin.com/posts/msavionics_a350-spdb-aviationmaintenance-activity-7475594270893088768-2peV', '_blank')">Read the Recap (Post 16e)</button>
+        <button class="btn secondary" onclick="window.open('https://www.linkedin.com/in/msavionics', '_blank')">See the Full Series</button>
+      </div>
+    </div>
+
+    <div class="intro-row">
+      <button class="btn" id="startBtn">Start the Knowledge Check</button>
+    </div>
+  </div>
+
   <div class="zonebar" id="zonebar"></div>
 
-  <div class="card" id="quizCard">
+  <div class="card" id="quizCard" style="display:none;">
     <div id="quizBody"></div>
   </div>
 
@@ -492,6 +598,13 @@ const quizBody = document.getElementById('quizBody');
 const quizCard = document.getElementById('quizCard');
 const readoutCard = document.getElementById('readoutCard');
 const readoutBody = document.getElementById('readoutBody');
+const introCard = document.getElementById('introCard');
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  introCard.classList.remove('show');
+  quizCard.style.display = '';
+  renderQuestion();
+});
 
 function buildZonebar(){
   zonebar.innerHTML = '';
@@ -627,7 +740,7 @@ function restart(){
   renderQuestion();
 }
 
-renderQuestion();
+// Quiz starts when the user clicks "Start the Knowledge Check" on the intro screen.
 </script>
 
 </body>
